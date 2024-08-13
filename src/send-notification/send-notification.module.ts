@@ -12,18 +12,30 @@ import {
   NotificationsSchema,
 } from 'shared/schemas/Notifications.schema';
 import { Companies, CompaniesSchema } from 'shared/schemas/Companies.schema';
-import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ClientOptions, ClientsModule, Transport } from '@nestjs/microservices';
+import { ConfigModule } from 'shared/config';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    ClientsModule.register([
+    ConfigModule,
+    ClientsModule.registerAsync([
       {
         name: 'PROFILE',
-        transport: Transport.TCP,
-        options: {
-          host: 'localhost',
-          port: 3002,
-        },
+        useFactory: (configService: ConfigService): ClientOptions => ({
+          transport: Transport.TCP,
+          options: {
+            host:
+              configService.get<string>('PROFILE_MICROSERVICE_HOST') ||
+              'localhost',
+            port:
+              parseInt(
+                configService.get<string>('PROFILE_MICROSERVICE_PORT'),
+                10,
+              ) || 3002,
+          },
+        }),
+        inject: [ConfigService],
       },
     ]),
     MongooseModule.forFeature([

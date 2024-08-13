@@ -1,18 +1,30 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
-  const app = await NestFactory.createMicroservice<MicroserviceOptions>(
-    AppModule,
-    {
-      transport: Transport.TCP,
-      options: {
-        port: 3001, // Use a specific port for notification-service
-      },
+  const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+  const microserviceOptions: MicroserviceOptions = {
+    transport: Transport.TCP,
+    options: {
+      host:
+        configService.get<string>('NOTIFICATION_MICROSERVICE_HOST') ||
+        'localhost',
+      port:
+        parseInt(
+          configService.get<string>('NOTIFICATION_MICROSERVICE_PORT'),
+          10,
+        ) || 3001,
     },
-  );
-  app.listen();
-}
+  };
+  const microservice =
+    await NestFactory.createMicroservice<MicroserviceOptions>(
+      AppModule,
+      microserviceOptions,
+    );
 
+  microservice.listen();
+}
 bootstrap();
